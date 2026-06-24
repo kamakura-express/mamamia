@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>我的錢包</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f7f6f2;--surface:#fff;--surface2:#f0efe9;--surface3:#e8e7e0;
+  --border:rgba(0,0,0,0.07);--border2:rgba(0,0,0,0.13);
+  --text:#1a1a1a;--text2:#6b6b68;--text3:#9a9a96;
+  --purple:#534AB7;--purple-l:#EEEDFE;
+  --teal:#1D9E75;--teal-l:#E1F5EE;
+  --coral:#D85A30;--coral-l:#FAECE7;
+  --amber:#BA7517;--amber-l:#FAEEDA;
+  --pink:#D4537E;--blue:#378ADD;--gray:#888780;--green:#3B6D11;
+  --radius:12px;--radius-sm:8px;
+}
+@media(prefers-color-scheme:dark){:root{
+  --bg:#16161a;--surface:#1e1e24;--surface2:#26262e;--surface3:#2e2e38;
+  --border:rgba(255,255,255,0.06);--border2:rgba(255,255,255,0.13);
+  --text:#f0f0ec;--text2:#a0a09c;--text3:#606060;
+  --purple-l:#26215C;--teal-l:#04342C;--coral-l:#4A1B0C;--amber-l:#412402;
+}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue','PingFang TC','Microsoft JhengHei',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+/* lock screen */
+#lock-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center}
+.lock-box{background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius);padding:2rem;width:300px;max-width:90vw;text-align:center}
+.lock-title{font-size:18px;font-weight:500;margin-bottom:6px}
+.lock-sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem}
+.lock-input{width:100%;font-size:16px;font-family:inherit;color:var(--text);background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px 14px;outline:none;text-align:center;letter-spacing:4px;margin-bottom:10px}
+.lock-input:focus{border-color:var(--purple)}
+.lock-btn{width:100%;padding:11px;background:var(--purple);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-family:inherit;cursor:pointer;font-weight:500}
+.lock-btn:hover{opacity:.88}
+.lock-err{font-size:13px;color:var(--coral);margin-top:8px;min-height:18px}
+/* header */
+header{background:var(--surface);border-bottom:0.5px solid var(--border2);padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between}
+header h1{font-size:16px;font-weight:500}
+.sync-badge{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text3)}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--text3)}
+.sync-dot.ok{background:var(--teal)}.sync-dot.err{background:var(--coral)}.sync-dot.busy{background:var(--amber);animation:blink 1s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+/* nav */
+nav{background:var(--surface);border-bottom:0.5px solid var(--border2);display:flex;overflow-x:auto;-webkit-overflow-scrolling:touch}
+nav::-webkit-scrollbar{display:none}
+.nav-btn{padding:.75rem 1.25rem;border:none;background:transparent;font-size:14px;font-family:inherit;color:var(--text2);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all .15s}
+.nav-btn.active{color:var(--purple);border-bottom-color:var(--purple);font-weight:500}
+/* layout */
+.container{max-width:860px;margin:0 auto;padding:1.5rem}
+.panel{display:none}.panel.active{display:block}
+.card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:1.25rem;margin-bottom:1rem}
+.card-title{font-size:11px;font-weight:500;color:var(--text3);letter-spacing:.07em;text-transform:uppercase;margin-bottom:1rem}
+/* month picker */
+.month-bar{display:flex;align-items:center;gap:10px;margin-bottom:1.25rem}
+.month-btn{background:none;border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:6px 12px;font-size:14px;font-family:inherit;color:var(--text2);cursor:pointer}
+.month-btn:hover{background:var(--surface2)}
+.month-label{font-size:16px;font-weight:500;flex:1;text-align:center}
+/* metric grid */
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:1rem}
+.metric{background:var(--surface2);border-radius:var(--radius-sm);padding:.75rem 1rem}
+.metric-label{font-size:12px;color:var(--text2);margin-bottom:3px}
+.metric-value{font-size:19px;font-weight:500;line-height:1.2}
+.metric-value.ok{color:var(--teal)}.metric-value.warn{color:var(--coral)}.metric-value.muted{color:var(--text2);font-size:15px}
+/* category rows in budget */
+.cat-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:0.5px solid var(--border)}
+.cat-row:last-child{border-bottom:none}
+.cat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.cat-name-input{flex:1;font-size:14px;font-family:inherit;color:var(--text);background:transparent;border:none;outline:none;min-width:0}
+.cat-name-input:focus{background:var(--surface2);border-radius:4px;padding:2px 4px}
+.cat-amt-display{font-size:14px;font-weight:500;color:var(--text);cursor:pointer;padding:4px 8px;border-radius:6px;border:0.5px solid transparent;white-space:nowrap}
+.cat-amt-display:hover{background:var(--surface2);border-color:var(--border2)}
+.cat-amt-input{font-size:14px;font-weight:500;width:90px;text-align:right;padding:4px 8px;border-radius:6px;border:0.5px solid var(--purple);background:var(--surface2);outline:none;font-family:inherit;display:none;color:var(--text)}
+.cat-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;padding:0 2px;flex-shrink:0}
+.cat-del:hover{color:var(--coral)}
+/* add cat row */
+.add-cat-row{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;align-items:center}
+.add-cat-name{flex:1;min-width:100px;font-size:14px;font-family:inherit;color:var(--text);background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:6px 10px;outline:none}
+.add-cat-name::placeholder{color:var(--text3)}
+.add-cat-name:focus{border-color:var(--purple)}
+.add-cat-amt{width:90px;font-size:14px;font-family:inherit;color:var(--text);background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:6px 10px;outline:none}
+.add-cat-amt:focus{border-color:var(--purple)}
+.add-cat-btn{padding:6px 14px;background:var(--purple);color:#fff;border:none;border-radius:var(--radius-sm);font-size:14px;font-family:inherit;cursor:pointer}
+/* quick entry */
+.entry-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+.entry-full{grid-column:1/-1}
+.entry-input,.entry-select{width:100%;font-size:15px;font-family:inherit;color:var(--text);background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px 12px;outline:none}
+.entry-input:focus,.entry-select:focus{border-color:var(--purple)}
+.entry-input::placeholder{color:var(--text3)}
+.trip-toggle{display:flex;align-items:center;gap:8px;font-size:14px;color:var(--text2);cursor:pointer;user-select:none}
+.trip-toggle input{width:16px;height:16px;accent-color:var(--purple);cursor:pointer}
+.record-btn{width:100%;padding:11px;background:var(--purple);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-family:inherit;cursor:pointer;font-weight:500;margin-top:4px}
+.record-btn:hover{opacity:.88}
+/* log list */
+.log-list{display:flex;flex-direction:column;gap:5px}
+.log-item{display:flex;align-items:center;gap:8px;padding:9px 10px;background:var(--surface2);border-radius:var(--radius-sm);font-size:14px}
+.log-pill{font-size:11px;padding:2px 8px;border-radius:20px;color:#fff;white-space:nowrap;flex-shrink:0}
+.log-trip{font-size:10px;padding:1px 6px;border-radius:20px;background:var(--amber-l);color:var(--amber);white-space:nowrap;flex-shrink:0}
+.log-note{color:var(--text2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px}
+.log-date{font-size:11px;color:var(--text3);white-space:nowrap}
+.log-amt{font-weight:500;white-space:nowrap}
+.log-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:16px;flex-shrink:0}
+.log-del:hover{color:var(--coral)}
+.empty{text-align:center;padding:2rem;color:var(--text3);font-size:14px}
+/* progress bars */
+.prog-list{display:flex;flex-direction:column;gap:10px}
+.prog-row{display:flex;flex-direction:column;gap:4px}
+.prog-header{display:flex;justify-content:space-between;align-items:baseline}
+.prog-name{font-size:13px;color:var(--text2)}
+.prog-amts{font-size:12px;color:var(--text3)}
+.prog-track{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden}
+.prog-fill{height:100%;border-radius:4px;transition:width .4s ease}
+/* trip analysis */
+.trip-day-list{display:flex;flex-direction:column;gap:6px}
+.trip-day{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px}
+.trip-day-header{display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px}
+.trip-day-name{font-weight:500}
+.trip-day-items{font-size:12px;color:var(--text2)}
+@media(max-width:580px){
+  .container{padding:1rem}
+  .entry-grid{grid-template-columns:1fr}
+  .entry-full{grid-column:1}
+  .metric-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+<div id="lock-screen" style="position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center">
+  <div style="background:var(--surface);border:0.5px solid var(--border2);border-radius:var(--radius);padding:2rem;width:300px;max-width:90vw;text-align:center">
+    <div style="font-size:22px;margin-bottom:.5rem">💰</div>
+    <div style="font-size:17px;font-weight:500;margin-bottom:6px">我的錢包</div>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:1.5rem">請輸入密碼</div>
+    <input id="lock-pw" type="password" placeholder="••••" maxlength="20" autocomplete="current-password"
+      style="width:100%;font-size:16px;font-family:inherit;color:var(--text);background:var(--surface2);border:0.5px solid var(--border2);border-radius:var(--radius-sm);padding:10px 14px;outline:none;text-align:center;letter-spacing:4px;margin-bottom:10px"
+      onkeydown="if(event.key==='Enter')doUnlock()">
+    <button onclick="doUnlock()" style="width:100%;padding:11px;background:var(--purple);color:#fff;border:none;border-radius:var(--radius-sm);font-size:15px;font-family:inherit;cursor:pointer;font-weight:500">進入</button>
+    <div id="lock-err" style="font-size:13px;color:var(--coral);margin-top:8px;min-height:18px"></div>
+  </div>
+</div>
+<header>
+  <h1>💰 我的錢包</h1>
+  <div class="sync-badge"><div class="sync-dot" id="sdot"></div><span id="stxt">連接中</span></div>
+</header>
+<nav>
+  <button class="nav-btn active" onclick="goTab('budget',this)">📋 預算</button>
+  <button class="nav-btn" onclick="goTab('entry',this)">➕ 記帳</button>
+  <button class="nav-btn" onclick="goTab('monthly',this)">📊 月結</button>
+  <button class="nav-btn" onclick="goTab('trip',this)">✈️ 旅行分析</button>
+</nav>
+<div class="container">
+
+  <!-- BUDGET TAB -->
+  <div class="panel active" id="tab-budget">
+    <div class="card">
+      <div class="card-title">每月收入</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:14px;color:var(--text2);min-width:60px">月入</span>
+        <input type="range" min="10000" max="80000" step="500" value="32000" id="income-slider"
+          style="-webkit-appearance:none;flex:1;height:4px;border-radius:4px;background:var(--surface2);outline:none;cursor:pointer"
+          oninput="income=+this.value;document.getElementById('income-disp').textContent=fmt(income);saveConfig()">
+        <span id="income-disp" style="font-size:15px;font-weight:500;min-width:90px;text-align:right">HK$32,000</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">預算類別 <span style="font-weight:400;font-size:10px;letter-spacing:0;text-transform:none;margin-left:4px">— 點金額可直接輸入</span></div>
+      <div id="cat-list"></div>
+      <div class="add-cat-row">
+        <input class="add-cat-name" id="new-cat-name" placeholder="新類別名稱" maxlength="14">
+        <input class="add-cat-amt" id="new-cat-amt" type="number" placeholder="月預算" min="0">
+        <button class="add-cat-btn" onclick="addCat()">＋ 加入</button>
+      </div>
+    </div>
+    <div class="card" style="background:var(--purple-l);border-color:var(--purple)">
+      <div style="font-size:13px;color:var(--purple)">💡 提示：類別會同時用於記帳時選擇。建議設定你常用嘅開支類別，旅行開支唔需要另外設類別。</div>
+    </div>
+  </div>
+
+  <!-- ENTRY TAB -->
+  <div class="panel" id="tab-entry">
+    <div class="card">
+      <div class="card-title">記低一筆</div>
+      <div class="entry-grid">
+        <div class="entry-full">
+          <input class="entry-input" id="e-amt" type="number" placeholder="金額 HK$" min="0" inputmode="decimal">
+        </div>
+        <select class="entry-select" id="e-cat"></select>
+        <input class="entry-input" id="e-date" type="date">
+        <div class="entry-full">
+          <input class="entry-input" id="e-note" placeholder="備註（可選）" maxlength="40">
+        </div>
+        <div class="entry-full" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+          <label class="trip-toggle">
+            <input type="checkbox" id="e-trip"> 旅行相關（計入旅行分析）
+          </label>
+        </div>
+      </div>
+      <button class="record-btn" onclick="addEntry()">記低</button>
+    </div>
+    <div class="card">
+      <div class="card-title" style="display:flex;justify-content:space-between;align-items:center">
+        <span>最近記錄</span>
+        <span id="recent-month" style="font-weight:400;font-size:10px;letter-spacing:0;text-transform:none"></span>
+      </div>
+      <div class="log-list" id="recent-log"></div>
+    </div>
+  </div>
+
+  <!-- MONTHLY TAB -->
+  <div class="panel" id="tab-monthly">
+    <div class="month-bar">
+      <button class="month-btn" onclick="changeMonth(-1)">‹</button>
+      <div class="month-label" id="m-label"></div>
+      <button class="month-btn" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="metric-grid" id="m-metrics"></div>
+    <div class="card">
+      <div class="card-title">各類別進度</div>
+      <div class="prog-list" id="m-prog"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">本月記錄</div>
+      <div class="log-list" id="m-log"></div>
+    </div>
+  </div>
+
+  <!-- TRIP TAB -->
+  <div class="panel" id="tab-trip">
+    <div class="card">
+      <div class="card-title">旅行開支總覽</div>
+      <div class="metric-grid" id="trip-metrics"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">按類別分析</div>
+      <div class="prog-list" id="trip-by-cat"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">按日期明細</div>
+      <div class="log-list" id="trip-log"></div>
+    </div>
+  </div>
+
+</div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
+import{getFirestore,collection,addDoc,deleteDoc,doc,onSnapshot,setDoc,getDoc}from"https://www.gstatic.com/firebasejs/12.15.0/firebase-firestore.js";
+
+const FB={apiKey:"AIzaSyDdqJ2WFuKyUa3YsKDwXJr4FlDKDtt_JB4",authDomain:"mamamia-f437b.firebaseapp.com",projectId:"mamamia-f437b",storageBucket:"mamamia-f437b.firebasestorage.app",messagingSenderId:"373758258595",appId:"1:373758258595:web:e4e642baf910678fe63e16"};
+const db=getFirestore(initializeApp(FB));
+
+// ── sync ──
+const sdot=document.getElementById('sdot'),stxt=document.getElementById('stxt');
+function sync(s){sdot.className='sync-dot '+(s==='ok'?'ok':s==='err'?'err':'busy');stxt.textContent={ok:'已同步',err:'失敗',busy:'同步中'}[s]||'連接中';}
+
+// ── helpers ──
+const COLORS=['#534AB7','#1D9E75','#D85A30','#D4537E','#888780','#378ADD','#BA7517','#639922','#A32D2D','#0F6E56'];
+function fmt(n){return'HK$'+Math.round(n).toLocaleString();}
+function today(){return new Date().toISOString().slice(0,10);}
+function monthOf(d){return d.slice(0,7);}
+function fmtMonth(ym){const[y,m]=ym.split('-');return y+'年'+(+m)+'月';}
+
+// ── state ──
+let income=32000;
+let cats=[
+  {name:'租金',budget:10000},
+  {name:'飲食',budget:4650},
+  {name:'交通',budget:1550},
+  {name:'日用品',budget:1500},
+  {name:'娛樂社交',budget:2000},
+  {name:'其他',budget:1500},
+];
+let entries=[];// {id,date,cat,amt,note,trip}
+let viewMonth=today().slice(0,7);
+
+// ── Firebase config ──
+async function saveConfig(){
+  sync('busy');
+  try{await setDoc(doc(db,'budget','config'),{income,cats});sync('ok');}
+  catch(e){sync('err');}
+}
+async function loadConfig(){
+  try{
+    const s=await getDoc(doc(db,'budget','config'));
+    if(s.exists()){const d=s.data();income=d.income||32000;cats=d.cats||cats;}
+    sync('ok');
+  }catch(e){sync('err');}
+}
+function listenEntries(){
+  onSnapshot(collection(db,'entries2'),snap=>{
+    entries=snap.docs.map(d=>({id:d.id,...d.data()}));
+    entries.sort((a,b)=>b.date.localeCompare(a.date));
+    renderAll();
+  });
+}
+async function writeEntry(e){sync('busy');try{await addDoc(collection(db,'entries2'),e);sync('ok');}catch(ex){sync('err');}}
+async function removeEntry(id){sync('busy');try{await deleteDoc(doc(db,'entries2',id));sync('ok');}catch(e){sync('err');}}
+
+// ── tabs ──
+window.goTab=function(name,btn){
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-'+name).classList.add('active');
+  if(name==='monthly')renderMonthly();
+  if(name==='trip')renderTrip();
+  if(name==='entry')renderRecentLog();
+};
+
+// ── Budget tab ──
+function colorForIdx(i){return COLORS[i%COLORS.length];}
+function renderCats(){
+  const el=document.getElementById('cat-list');
+  el.innerHTML='';
+  cats.forEach((c,i)=>{
+    const row=document.createElement('div');
+    row.className='cat-row';
+    row.innerHTML=`
+      <div class="cat-dot" style="background:${colorForIdx(i)}"></div>
+      <input class="cat-name-input" value="${c.name}" maxlength="14"
+        onchange="cats[${i}].name=this.value;saveConfig();renderAll()">
+      <span class="cat-amt-display" id="cdisp-${i}" onclick="startCatEdit(${i})">${fmt(c.budget)}</span>
+      <input class="cat-amt-input" id="cinp-${i}" type="number" min="0" value="${c.budget}"
+        onblur="commitCatEdit(${i})"
+        onkeydown="if(event.key==='Enter')commitCatEdit(${i});if(event.key==='Escape')cancelCatEdit(${i})">
+      <button class="cat-del" onclick="delCat(${i})">×</button>
+    `;
+    el.appendChild(row);
+  });
+  populateCatSelect();
+}
+window.startCatEdit=function(i){
+  document.getElementById('cdisp-'+i).style.display='none';
+  const inp=document.getElementById('cinp-'+i);inp.style.display='inline-block';inp.focus();inp.select();
+};
+window.cancelCatEdit=function(i){
+  document.getElementById('cinp-'+i).style.display='none';document.getElementById('cdisp-'+i).style.display='';
+};
+window.commitCatEdit=function(i){
+  const v=Math.max(0,parseInt(document.getElementById('cinp-'+i).value)||0);
+  cats[i].budget=v;renderCats();saveConfig();renderAll();
+};
+window.addCat=function(){
+  const n=document.getElementById('new-cat-name').value.trim();
+  const a=parseInt(document.getElementById('new-cat-amt').value)||0;
+  if(!n)return document.getElementById('new-cat-name').focus();
+  cats.push({name:n,budget:a});
+  document.getElementById('new-cat-name').value='';document.getElementById('new-cat-amt').value='';
+  renderCats();saveConfig();
+};
+window.delCat=function(i){if(cats.length<=1)return;cats.splice(i,1);renderCats();saveConfig();renderAll();};
+document.getElementById('new-cat-name').addEventListener('keydown',e=>{if(e.key==='Enter')window.addCat();});
+document.getElementById('new-cat-amt').addEventListener('keydown',e=>{if(e.key==='Enter')window.addCat();});
+
+// ── Entry tab ──
+function populateCatSelect(){
+  const sel=document.getElementById('e-cat');const cur=sel.value;
+  sel.innerHTML=cats.map(c=>`<option value="${c.name}">${c.name}</option>`).join('');
+  if(cur)sel.value=cur;
+}
+// set default date
+document.getElementById('e-date').value=today();
+
+window.addEntry=async function(){
+  const amt=parseFloat(document.getElementById('e-amt').value);
+  if(!amt||amt<=0)return document.getElementById('e-amt').focus();
+  const e={
+    date:document.getElementById('e-date').value||today(),
+    cat:document.getElementById('e-cat').value,
+    amt:Math.round(amt),
+    note:document.getElementById('e-note').value.trim(),
+    trip:document.getElementById('e-trip').checked
+  };
+  await writeEntry(e);
+  document.getElementById('e-amt').value='';
+  document.getElementById('e-note').value='';
+  document.getElementById('e-trip').checked=false;
+  document.getElementById('e-amt').focus();
+};
+document.getElementById('e-amt').addEventListener('keydown',e=>{if(e.key==='Enter')window.addEntry();});
+
+function renderRecentLog(){
+  document.getElementById('recent-month').textContent=fmtMonth(viewMonth);
+  const list=document.getElementById('recent-log');
+  const recent=entries.filter(e=>monthOf(e.date)===viewMonth);
+  if(!recent.length){list.innerHTML='<div class="empty">今個月未有記錄</div>';return;}
+  list.innerHTML=recent.slice(0,30).map(e=>logItemHtml(e)).join('');
+}
+
+function logItemHtml(e){
+  const ci=cats.findIndex(c=>c.name===e.cat);
+  const color=ci>=0?colorForIdx(ci):'#888780';
+  return `<div class="log-item">
+    <span class="log-pill" style="background:${color}">${e.cat}</span>
+    ${e.trip?'<span class="log-trip">✈️ 旅行</span>':''}
+    <span class="log-date">${e.date.slice(5)}</span>
+    <span class="log-note">${e.note||'—'}</span>
+    <span class="log-amt">${fmt(e.amt)}</span>
+    <button class="log-del" onclick="window.delEntry('${e.id}')">×</button>
+  </div>`;
+}
+window.delEntry=async function(id){await removeEntry(id);};
+
+// ── Monthly tab ──
+window.changeMonth=function(d){
+  const[y,m]=viewMonth.split('-').map(Number);
+  const nd=new Date(y,m-1+d,1);
+  viewMonth=nd.getFullYear()+'-'+String(nd.getMonth()+1).padStart(2,'0');
+  renderMonthly();renderRecentLog();
+};
+function renderMonthly(){
+  document.getElementById('m-label').textContent=fmtMonth(viewMonth);
+  const me=entries.filter(e=>monthOf(e.date)===viewMonth);
+  const totalSpent=me.reduce((s,e)=>s+e.amt,0);
+  const totalBudget=cats.reduce((s,c)=>s+c.budget,0);
+  const left=income-totalSpent;
+  const surplus=totalBudget-totalSpent;
+  document.getElementById('m-metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">月入</div><div class="metric-value">${fmt(income)}</div></div>
+    <div class="metric"><div class="metric-label">實際支出</div><div class="metric-value ${totalSpent>totalBudget?'warn':''}">${fmt(totalSpent)}</div></div>
+    <div class="metric"><div class="metric-label">預算結餘</div><div class="metric-value ${surplus<0?'warn':'ok'}">${fmt(surplus)}</div></div>
+    <div class="metric"><div class="metric-label">實際餘額</div><div class="metric-value ${left<0?'warn':'ok'}">${fmt(left)}</div></div>
+  `;
+  // progress bars
+  const pg=document.getElementById('m-prog');
+  if(!cats.length){pg.innerHTML='<div class="empty">未設預算類別</div>';return;}
+  pg.innerHTML=cats.map((c,i)=>{
+    const spent=me.filter(e=>e.cat===c.name).reduce((s,e)=>s+e.amt,0);
+    const pct=c.budget>0?Math.min(120,Math.round(spent/c.budget*100)):0;
+    const over=spent>c.budget&&c.budget>0;
+    return `<div class="prog-row">
+      <div class="prog-header">
+        <span class="prog-name" style="color:${colorForIdx(i)}">${c.name}</span>
+        <span class="prog-amts">${fmt(spent)} / ${fmt(c.budget)} (${pct}%)</span>
+      </div>
+      <div class="prog-track">
+        <div class="prog-fill" style="width:${Math.min(100,pct)}%;background:${over?'var(--coral)':colorForIdx(i)}"></div>
+      </div>
+    </div>`;
+  }).join('');
+  // log
+  const ml=document.getElementById('m-log');
+  if(!me.length){ml.innerHTML='<div class="empty">本月未有記錄</div>';return;}
+  ml.innerHTML=me.map(e=>logItemHtml(e)).join('');
+}
+
+// ── Trip tab ──
+function renderTrip(){
+  const te=entries.filter(e=>e.trip);
+  const total=te.reduce((s,e)=>s+e.amt,0);
+  // by cat
+  const byCat={};
+  te.forEach(e=>{byCat[e.cat]=(byCat[e.cat]||0)+e.amt;});
+  // by date
+  const byDate={};
+  te.forEach(e=>{byDate[e.date]=(byDate[e.date]||0)+e.amt;});
+  const dates=Object.keys(byDate).sort();
+  const tripDays=dates.length;
+  const avgPerDay=tripDays>0?Math.round(total/tripDays):0;
+
+  document.getElementById('trip-metrics').innerHTML=`
+    <div class="metric"><div class="metric-label">旅行總支出</div><div class="metric-value warn">${fmt(total)}</div></div>
+    <div class="metric"><div class="metric-label">記帳天數</div><div class="metric-value">${tripDays} 日</div></div>
+    <div class="metric"><div class="metric-label">日均開支</div><div class="metric-value">${fmt(avgPerDay)}</div></div>
+    <div class="metric"><div class="metric-label">筆數</div><div class="metric-value muted">${te.length} 筆</div></div>
+  `;
+
+  // by cat bars
+  const bc=document.getElementById('trip-by-cat');
+  if(!Object.keys(byCat).length){bc.innerHTML='<div class="empty">未有旅行記錄</div>';}
+  else{
+    bc.innerHTML=Object.entries(byCat).sort((a,b)=>b[1]-a[1]).map(([cat,amt])=>{
+      const ci=cats.findIndex(c=>c.name===cat);
+      const color=ci>=0?colorForIdx(ci):'#888780';
+      const pct=total>0?Math.round(amt/total*100):0;
+      return `<div class="prog-row">
+        <div class="prog-header">
+          <span class="prog-name" style="color:${color}">${cat}</span>
+          <span class="prog-amts">${fmt(amt)} (${pct}%)</span>
+        </div>
+        <div class="prog-track">
+          <div class="prog-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  // log
+  const tl=document.getElementById('trip-log');
+  if(!te.length){tl.innerHTML='<div class="empty">記帳時剔選「旅行相關」，支出就會顯示喺度</div>';return;}
+  tl.innerHTML=te.map(e=>logItemHtml(e)).join('');
+}
+
+// ── render all ──
+function renderAll(){
+  renderCats();
+  renderRecentLog();
+  if(document.getElementById('tab-monthly').classList.contains('active'))renderMonthly();
+  if(document.getElementById('tab-trip').classList.contains('active'))renderTrip();
+}
+
+// ── init ──
+async function init(){
+  sync('busy');
+  await loadConfig();
+  document.getElementById('income-slider').value=income;
+  document.getElementById('income-disp').textContent=fmt(income);
+  renderCats();
+  renderRecentLog();
+  listenEntries();
+}
+
+// ── password ──
+const PW_HASH='2ab5f3e7b2fc07fd3ea3be3f295446ecfb90ab9e1f920cdf62124a1736f215b6';
+async function hashPw(pw){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(pw));
+  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+async function doUnlock(){
+  const pw=document.getElementById('lock-pw').value;
+  if(!pw)return;
+  const h=await hashPw(pw);
+  if(h===PW_HASH){
+    sessionStorage.setItem('bpwok','1');
+    document.getElementById('lock-screen').style.display='none';
+    init();
+  } else {
+    document.getElementById('lock-err').textContent='密碼錯誤，請再試';
+    document.getElementById('lock-pw').value='';
+    document.getElementById('lock-pw').focus();
+  }
+}
+window.doUnlock=doUnlock;
+if(sessionStorage.getItem('bpwok')==='1'){
+  document.getElementById('lock-screen').style.display='none';
+  document.addEventListener('DOMContentLoaded',()=>init());
+}
+
+</script>
+</body>
+</html>
